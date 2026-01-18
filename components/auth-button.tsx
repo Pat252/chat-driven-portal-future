@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { LogOut, LogIn } from 'lucide-react'
 
 export default function AuthButton() {
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -27,15 +29,14 @@ export default function AuthButton() {
   }, [])
 
   const handleSignIn = async () => {
+    console.log('OAuth initiated via Supabase')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
     })
 
     if (error) {
       console.error('Error signing in:', error.message)
+      alert(`Error: ${error.message}`)
     }
   }
 
@@ -43,6 +44,9 @@ export default function AuthButton() {
     const { error } = await supabase.auth.signOut()
     if (error) {
       console.error('Error signing out:', error.message)
+    } else {
+      // Redirect to landing page after sign out
+      router.push('/')
     }
   }
 

@@ -17,13 +17,12 @@ import type { Provider } from '@supabase/supabase-js'
 /**
  * Sign in with OAuth provider (Google, GitHub, etc.)
  * Redirects user to OAuth provider's consent screen
+ * NOTE: Supabase automatically handles redirectTo via dashboard configuration
  */
 export const signInWithOAuth = async (provider: Provider) => {
+  console.log('OAuth initiated via Supabase')
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-    },
   })
 
   if (error) {

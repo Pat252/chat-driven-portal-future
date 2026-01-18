@@ -56,11 +56,31 @@ export const createServerClient = () => {
  */
 export const getUser = async () => {
   const supabase = createServerClient()
+  
+  // Debug: Log available cookies (server-side only)
+  const cookieStore = cookies()
+  const allCookies = cookieStore.getAll()
+  const supabaseCookies = allCookies.filter(cookie => 
+    cookie.name.includes('supabase') || cookie.name.includes('sb-') || cookie.name.includes('auth-token')
+  )
+  
+  if (supabaseCookies.length > 0) {
+    console.log('[Server] Supabase cookies found:', supabaseCookies.map(c => `${c.name}=${c.value.substring(0, 20)}...`))
+  } else {
+    console.log('[Server] No Supabase cookies found. Available cookies:', allCookies.map(c => c.name))
+  }
+  
   const { data: { user }, error } = await supabase.auth.getUser()
   
   if (error) {
     console.error('Error fetching user:', error.message)
     return null
+  }
+  
+  if (user) {
+    console.log('[Server] User authenticated:', user.email)
+  } else {
+    console.log('[Server] No authenticated user')
   }
   
   return user
