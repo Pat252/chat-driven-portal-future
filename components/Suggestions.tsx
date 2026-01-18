@@ -21,9 +21,9 @@ export default function Suggestions() {
       {suggestions.map((suggestion, index) => (
         <button
           key={index}
-          className="p-4 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-[#40414f] transition-colors cursor-pointer text-left group"
+          className="p-4 rounded-lg border border-gray-300 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-left group"
         >
-          <p className="text-sm text-[#353740] dark:text-[#ececf1] group-hover:text-[#2d2d2d] dark:group-hover:text-[#ececf1]">
+          <p className="text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-800 dark:group-hover:text-zinc-50">
             {suggestion.text}
           </p>
         </button>
