@@ -33,3 +33,6 @@ export const isSupabaseConfigured = (): boolean => {
   return Boolean(supabaseUrl && supabaseAnonKey)
 }
 
+
+
+

@@ -3,19 +3,36 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
+  
+  // Debug logging
+  console.log('[Callback] Full URL:', request.url)
+  console.log('[Callback] Search params:', requestUrl.searchParams.toString())
+  console.log('[Callback] Hash:', requestUrl.hash)
+  
   const code = requestUrl.searchParams.get('code')
   const error = requestUrl.searchParams.get('error')
   const errorDescription = requestUrl.searchParams.get('error_description')
-  const origin = requestUrl.origin
+  const next = requestUrl.searchParams.get('next') ?? '/chat'
+  
+  // Use NEXT_PUBLIC_SITE_URL to ensure redirect stays on public domain
+  // Remove any trailing slashes
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://chat.aidrivenfuture.ca').replace(/\/$/, '')
 
+  console.log('[Callback] Code:', code)
+  console.log('[Callback] Error:', error)
+
+  // Handle OAuth errors
   if (error) {
-    console.error('OAuth error:', error, errorDescription)
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+    console.error('[Callback] OAuth error:', error, errorDescription)
+    return NextResponse.redirect(`${siteUrl}/auth/auth-code-error`)
   }
 
+  // Handle authorization code flow
   if (code) {
+    console.log('[Callback] Processing authorization code...')
+    
     // Create redirect response - cookies will be added to this response
-    const redirectUrl = `${origin}/chat`
+    const redirectUrl = `${siteUrl}${next}`
     let response = NextResponse.redirect(redirectUrl)
 
     // Create Supabase client for Route Handler that writes cookies to response
@@ -67,17 +84,88 @@ export async function GET(request: NextRequest) {
     )
     
     // Exchange code for session - this will set cookies via the handlers above
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    
+    console.log('[Callback] Exchange error:', exchangeError?.message)
+    console.log('[Callback] Session exists:', !!data?.session)
+    console.log('[Callback] User:', data?.session?.user?.email)
     
     if (exchangeError) {
-      console.error('Error exchanging code for session:', exchangeError.message)
-      return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+      console.error('[Callback] Error exchanging code for session:', exchangeError.message)
+      return NextResponse.redirect(`${siteUrl}/auth/auth-code-error`)
     }
 
+    if (!data?.session) {
+      console.error('[Callback] No session returned after exchange')
+      return NextResponse.redirect(`${siteUrl}/auth/auth-code-error`)
+    }
+
+    console.log('[Callback] Session exchanged successfully, redirecting to:', redirectUrl)
+    
     // Return the redirect response with cookies already set
     return response
   }
 
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  // Check for fragment-based tokens (implicit flow - shouldn't happen with PKCE)
+  const hash = requestUrl.hash
+  if (hash && hash.includes('access_token')) {
+    console.log('[Callback] Detected fragment-based tokens (implicit flow)')
+    console.warn('[Callback] WARNING: Implicit flow detected. This should not happen with PKCE.')
+    
+    // Extract tokens from hash
+    const params = new URLSearchParams(hash.substring(1))
+    const accessToken = params.get('access_token')
+    const refreshToken = params.get('refresh_token')
+    
+    console.log('[Callback] Access token present:', !!accessToken)
+    console.log('[Callback] Refresh token present:', !!refreshToken)
+    
+    if (accessToken) {
+      const redirectUrl = `${siteUrl}${next}`
+      let response = NextResponse.redirect(redirectUrl)
+
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              return request.cookies.get(name)?.value
+            },
+            set(name: string, value: string, options: any) {
+              const cookieOptions = { ...options, path: '/' }
+              request.cookies.set({ name, value, ...cookieOptions })
+              response.cookies.set({ name, value, ...cookieOptions })
+            },
+            remove(name: string, options: any) {
+              const cookieOptions = { ...options, path: '/' }
+              request.cookies.set({ name, value: '', ...cookieOptions })
+              response.cookies.set({ name, value: '', ...cookieOptions })
+            },
+          },
+        }
+      )
+
+      // Set session from tokens
+      const { data, error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken || '',
+      })
+
+      console.log('[Callback] Set session error:', sessionError?.message)
+      console.log('[Callback] Session set:', !!data?.session)
+
+      if (sessionError || !data?.session) {
+        console.error('[Callback] Failed to set session from tokens')
+        return NextResponse.redirect(`${siteUrl}/auth/auth-code-error`)
+      }
+
+      console.log('[Callback] Session set successfully from tokens')
+      return response
+    }
+  }
+
+  console.error('[Callback] No code or tokens found in request')
+  return NextResponse.redirect(`${siteUrl}/auth/auth-code-error`)
 }
 

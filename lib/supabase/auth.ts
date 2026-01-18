@@ -17,12 +17,17 @@ import type { Provider } from '@supabase/supabase-js'
 /**
  * Sign in with OAuth provider (Google, GitHub, etc.)
  * Redirects user to OAuth provider's consent screen
- * NOTE: Supabase automatically handles redirectTo via dashboard configuration
+ * Uses NEXT_PUBLIC_SITE_URL to ensure correct redirect URL when accessed via tunnel
  */
 export const signInWithOAuth = async (provider: Provider) => {
   console.log('OAuth initiated via Supabase')
+  // Use NEXT_PUBLIC_SITE_URL with fallback - safe for client-side
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://chat.aidrivenfuture.ca'
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
+    options: {
+      redirectTo: `${siteUrl}/auth/callback`,
+    },
   })
 
   if (error) {
@@ -68,11 +73,12 @@ export const signInWithEmail = async (email: string, password: string) => {
  * Sign up with email and password
  */
 export const signUpWithEmail = async (email: string, password: string) => {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://chat.aidrivenfuture.ca'
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   })
 
@@ -143,8 +149,9 @@ export const onAuthStateChange = (
  * Reset password for email
  */
 export const resetPassword = async (email: string) => {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://chat.aidrivenfuture.ca'
   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth/reset-password`,
+    redirectTo: `${siteUrl}/auth/reset-password`,
   })
 
   if (error) {

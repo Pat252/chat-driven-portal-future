@@ -5,8 +5,13 @@ import { supabase } from '@/lib/supabase/client'
 
 export default function LandingPage() {
   const handleSignIn = async () => {
+    // Use NEXT_PUBLIC_SITE_URL with fallback - safe for client-side
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://chat.aidrivenfuture.ca'
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: {
+        redirectTo: `${siteUrl}/auth/callback`,
+      },
     })
 
     if (error) {

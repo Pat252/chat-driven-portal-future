@@ -174,3 +174,6 @@ To enable Google/GitHub sign-in:
 
 **You're all set!** 🎉 Add your Supabase credentials and start building!
 
+
+
+
