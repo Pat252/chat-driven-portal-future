@@ -17,16 +17,20 @@ import type { Provider } from '@supabase/supabase-js'
 /**
  * Sign in with OAuth provider (Google, GitHub, etc.)
  * Redirects user to OAuth provider's consent screen
- * Uses NEXT_PUBLIC_SITE_URL to ensure correct redirect URL when accessed via tunnel
+ * Forces correct redirect URL based on NODE_ENV to prevent redirect_uri_mismatch
  */
 export const signInWithOAuth = async (provider: Provider) => {
   console.log('OAuth initiated via Supabase')
-  // Use NEXT_PUBLIC_SITE_URL with fallback - safe for client-side
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://chat.aidrivenfuture.ca'
+  // Force correct redirect URL based on environment
+  const redirectTo =
+    process.env.NODE_ENV === 'development'
+      ? 'http://localhost:3000/auth/callback'
+      : 'https://chat.aidrivenfuture.ca/auth/callback'
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${siteUrl}/auth/callback`,
+      redirectTo,
     },
   })
 

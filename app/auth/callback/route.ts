@@ -2,10 +2,42 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url)
+  // PART 1: Log all headers for Cloudflared diagnosis
+  console.log('========== CALLBACK DIAGNOSTICS ==========')
+  console.log('[Callback] request.url:', request.url)
+  console.log('[Callback] host:', request.headers.get('host'))
+  console.log('[Callback] x-forwarded-host:', request.headers.get('x-forwarded-host'))
+  console.log('[Callback] x-forwarded-proto:', request.headers.get('x-forwarded-proto'))
+  console.log('[Callback] x-forwarded-for:', request.headers.get('x-forwarded-for'))
+  
+  // PART 2: Reconstruct origin from forwarded headers (Cloudflared support)
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto')
+  const host = forwardedHost ?? request.headers.get('host') ?? 'localhost:3000'
+  const proto = forwardedProto ?? (host.includes('localhost') ? 'http' : 'https')
+  const reconstructedOrigin = `${proto}://${host}`
+  
+  console.log('[Callback] Reconstructed origin:', reconstructedOrigin)
+  
+  // Parse URL - handle both direct access and proxied access
+  let requestUrl: URL
+  try {
+    // If accessed via Cloudflared, request.url might have localhost in it
+    // Replace with the forwarded host
+    if (forwardedHost && request.url.includes('localhost')) {
+      const correctedUrl = request.url.replace(/http:\/\/localhost:\d+/, reconstructedOrigin)
+      console.log('[Callback] Corrected URL:', correctedUrl)
+      requestUrl = new URL(correctedUrl)
+    } else {
+      requestUrl = new URL(request.url)
+    }
+  } catch (e) {
+    console.error('[Callback] Failed to parse URL:', e)
+    requestUrl = new URL(request.url)
+  }
   
   // Debug logging
-  console.log('[Callback] Full URL:', request.url)
+  console.log('[Callback] Parsed URL:', requestUrl.toString())
   console.log('[Callback] Search params:', requestUrl.searchParams.toString())
   console.log('[Callback] Hash:', requestUrl.hash)
   
@@ -16,10 +48,12 @@ export async function GET(request: NextRequest) {
   
   // Use NEXT_PUBLIC_SITE_URL to ensure redirect stays on public domain
   // Remove any trailing slashes
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://chat.aidrivenfuture.ca').replace(/\/$/, '')
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? reconstructedOrigin).replace(/\/$/, '')
 
+  console.log('[Callback] Site URL:', siteUrl)
   console.log('[Callback] Code:', code)
   console.log('[Callback] Error:', error)
+  console.log('===========================================')
 
   // Handle OAuth errors
   if (error) {
