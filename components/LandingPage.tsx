@@ -1,27 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { supabase } from '@/lib/supabase/client'
+import { signInWithGoogleAction } from '@/app/auth/actions'
 
 export default function LandingPage() {
-  const handleSignIn = async () => {
-    // Force correct redirect URL based on environment
-    const redirectTo =
-      process.env.NODE_ENV === 'development'
-        ? 'http://localhost:3000/auth/callback'
-        : 'https://chat.aidrivenfuture.ca/auth/callback'
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-      },
-    })
-
-    if (error) {
-      console.error('Error signing in:', error.message)
-    }
-  }
 
   return (
     <div className="relative min-h-screen bg-zinc-950 overflow-hidden flex items-center justify-center">
@@ -76,12 +58,14 @@ export default function LandingPage() {
 
         {/* Google Sign-in Button */}
         <div className="mb-6">
-          <button
-            onClick={handleSignIn}
-            className="w-full px-6 py-3.5 bg-white hover:bg-zinc-100 text-zinc-900 font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
-          >
-            Continue with Google
-          </button>
+          <form action={signInWithGoogleAction}>
+            <button
+              type="submit"
+              className="w-full px-6 py-3.5 bg-white hover:bg-zinc-100 text-zinc-900 font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
+            >
+              Continue with Google
+            </button>
+          </form>
         </div>
 
         {/* Reassurance Text */}

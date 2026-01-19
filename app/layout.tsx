@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   description: 'AI Chat Portal',
 }
 
+/**
+ * Root Layout
+ * 
+ * Minimal layout - each page handles its own auth UI.
+ * - /login has its own layout
+ * - /chat has ChatHeader with user info
+ */
 export default function RootLayout({
   children,
 }: {

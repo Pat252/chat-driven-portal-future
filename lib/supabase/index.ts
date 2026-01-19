@@ -14,10 +14,9 @@ export { supabase, isSupabaseConfigured } from './client'
 export { createServerClient, getUser, getSession } from './server'
 
 // Authentication
+// NOTE: For OAuth (Google, GitHub), use server actions from app/auth/actions.ts
+// These client-side helpers are for email/password auth only
 export {
-  signInWithOAuth,
-  signInWithGoogle,
-  signInWithGitHub,
   signInWithEmail,
   signUpWithEmail,
   signOut,
@@ -35,6 +34,7 @@ export {
 
 // Middleware
 export { updateSession } from './middleware'
+
 
 
 

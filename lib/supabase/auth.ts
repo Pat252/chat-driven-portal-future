@@ -15,46 +15,12 @@ import { supabase } from './client'
 import type { Provider } from '@supabase/supabase-js'
 
 /**
- * Sign in with OAuth provider (Google, GitHub, etc.)
- * Redirects user to OAuth provider's consent screen
- * Forces correct redirect URL based on NODE_ENV to prevent redirect_uri_mismatch
+ * DEPRECATED: OAuth should now be handled via server actions
+ * See app/auth/actions.ts for signInWithGoogleAction()
+ * 
+ * These functions are kept for backward compatibility but should not be used.
+ * Client-side OAuth calls can cause issues with PKCE flow and cookie handling.
  */
-export const signInWithOAuth = async (provider: Provider) => {
-  console.log('OAuth initiated via Supabase')
-  // Force correct redirect URL based on environment
-  const redirectTo =
-    process.env.NODE_ENV === 'development'
-      ? 'http://localhost:3000/auth/callback'
-      : 'https://chat.aidrivenfuture.ca/auth/callback'
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: {
-      redirectTo,
-    },
-  })
-
-  if (error) {
-    console.error(`Error signing in with ${provider}:`, error.message)
-    throw error
-  }
-
-  return data
-}
-
-/**
- * Sign in with Google OAuth
- */
-export const signInWithGoogle = async () => {
-  return signInWithOAuth('google')
-}
-
-/**
- * Sign in with GitHub OAuth
- */
-export const signInWithGitHub = async () => {
-  return signInWithOAuth('github')
-}
 
 /**
  * Sign in with email and password
@@ -77,12 +43,11 @@ export const signInWithEmail = async (email: string, password: string) => {
  * Sign up with email and password
  */
 export const signUpWithEmail = async (email: string, password: string) => {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://chat.aidrivenfuture.ca'
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback`,
+      emailRedirectTo: `${location.protocol}//${location.host}/auth/callback`,
     },
   })
 
@@ -153,9 +118,8 @@ export const onAuthStateChange = (
  * Reset password for email
  */
 export const resetPassword = async (email: string) => {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://chat.aidrivenfuture.ca'
   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/auth/reset-password`,
+    redirectTo: `${location.protocol}//${location.host}/auth/reset-password`,
   })
 
   if (error) {
